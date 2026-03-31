@@ -19,8 +19,8 @@ export default function RequestLeavePage() {
     start_date:  '',
     end_date:    '',
     duration:    'full',   // 'full' | 'half' | 'hours'
-    start_time:  '09:00',
-    end_time:    '17:00',
+    start_time:  '08:00',
+    end_time:    '16:30',
     note:        '',
   })
   const [loading,     setLoading]     = useState(false)
@@ -54,7 +54,7 @@ export default function RequestLeavePage() {
 
     if (form.duration === 'hours') {
       const diff = timeToHours(form.end_time) - timeToHours(form.start_time)
-      return diff > 0 ? Math.round(diff * 10) / 10 : 0
+      return diff > 0 ? Math.round(diff * 4) / 4 : 0  // round to nearest 0.25
     }
 
     const start = new Date(form.start_date)
@@ -65,7 +65,7 @@ export default function RequestLeavePage() {
     const cur = new Date(start)
     while (cur <= end) {
       const d = cur.getDay()
-      if (d !== 0 && d !== 6) days++
+      if (d !== 0 && d !== 6) days++  // Mon-Fri only
       cur.setDate(cur.getDate() + 1)
     }
     if (form.duration === 'half') return HOURS_PER_DAY / 2
@@ -98,11 +98,13 @@ export default function RequestLeavePage() {
   const isWfh     = form.leave_type === 'wfh'
   const isHours   = form.duration === 'hours'
 
-  // Generate time options every 30 mins
+  // Generate time options every 15 mins, 07:00–20:00
   const timeOptions: string[] = []
   for (let h = 7; h <= 20; h++) {
-    timeOptions.push(`${String(h).padStart(2,'0')}:00`)
-    if (h < 20) timeOptions.push(`${String(h).padStart(2,'0')}:30`)
+    for (let m = 0; m < 60; m += 15) {
+      if (h === 20 && m > 0) break
+      timeOptions.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`)
+    }
   }
 
   return (
