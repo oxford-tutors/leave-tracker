@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --oxford: #202641;
+    --gold:   #d1b378;
+    --cambridge: #a4d3d1;
+  }
+  body { font-family: 'Open Sans', sans-serif; }
+  h1,h2,h3,h4,h5,h6 { font-family: 'Montserrat', sans-serif; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-oxford text-white font-display font-semibold px-6 py-2.5 rounded-lg
+           hover:bg-opacity-90 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-gold {
+    @apply bg-gold text-oxford font-display font-semibold px-6 py-2.5 rounded-lg
+           hover:bg-opacity-90 transition-all duration-150;
+  }
+  .btn-ghost {
+    @apply text-gray-600 font-medium px-4 py-2 rounded-lg hover:bg-gray-100 transition-all duration-150;
+  }
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6;
+  }
+  .input {
+    @apply w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm
+           focus:outline-none focus:ring-2 focus:ring-oxford focus:border-transparent
+           transition-all duration-150;
+  }
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+}
