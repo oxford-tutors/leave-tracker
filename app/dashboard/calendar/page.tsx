@@ -32,16 +32,19 @@ const MONTHS = ['January','February','March','April','May','June',
 const DAYS   = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
 
 export default function CalendarPage() {
-  const today   = new Date()
-  const [year,  setYear]    = useState(today.getFullYear())
-  const [month, setMonth]   = useState(today.getMonth())
-  const [entries,      setEntries]      = useState<CalendarEntry[]>([])
-  const [blockedDays,  setBlockedDays]  = useState<BlockedDay[]>([])
-  const [profile,      setProfile]      = useState<Profile | null>(null)
-  const [loading,      setLoading]      = useState(true)
-  const [blockModal,   setBlockModal]   = useState<string | null>(null) // date string
-  const [blockReason,  setBlockReason]  = useState('')
-  const [selectedDay,  setSelectedDay]  = useState<string | null>(null)
+  const today  = new Date()
+  const [year,  setYear]  = useState(today.getFullYear())
+  const [month, setMonth] = useState(today.getMonth())
+
+  const [entries,     setEntries]     = useState<CalendarEntry[]>([])
+  const [blockedDays, setBlockedDays] = useState<BlockedDay[]>([])
+  const [profile,     setProfile]     = useState<Profile | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [loading,     setLoading]     = useState(true)
+  const [teamView,    setTeamView]    = useState(false) // admin toggle
+  const [blockModal,  setBlockModal]  = useState<string | null>(null)
+  const [blockReason, setBlockReason] = useState('')
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -49,6 +52,8 @@ export default function CalendarPage() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+
+    setCurrentUserId(user.id)
 
     const [{ data: prof }, { data: reqs }, { data: blocked }] = await Promise.all([
       supabase.from('profiles').select('id, role, name').eq('id', user.id).single(),
@@ -76,11 +81,10 @@ export default function CalendarPage() {
     else setMonth(m => m + 1)
   }
 
-  // Build calendar grid (Mon-Sun)
-  const firstDay = new Date(year, month, 1)
-  const lastDay  = new Date(year, month + 1, 0)
-  // Start from Monday
-  let startDow = firstDay.getDay() - 1
+  // Build calendar grid (Mon–Sun)
+  const firstDay  = new Date(year, month, 1)
+  const lastDay   = new Date(year, month + 1, 0)
+  let startDow    = firstDay.getDay() - 1
   if (startDow < 0) startDow = 6
 
   const cells: (Date | null)[] = []
@@ -92,30 +96,27 @@ export default function CalendarPage() {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
   }
 
+  // Filter entries based on role + view mode
+  function visibleEntries(allEntries: CalendarEntry[]): CalendarEntry[] {
+    if (profile?.role === 'admin' && teamView) return allEntries
+    return allEntries.filter(e => e.user_id === currentUserId)
+  }
+
   function entriesForDate(d: Date): CalendarEntry[] {
     const ds = dateStr(d)
-    return entries.filter(e => e.start_date <= ds && e.end_date >= ds)
+    return visibleEntries(entries).filter(e => e.start_date <= ds && e.end_date >= ds)
   }
 
   function isBlocked(d: Date): BlockedDay | null {
-    const ds = dateStr(d)
-    return blockedDays.find(b => b.date === ds) || null
+    return blockedDays.find(b => b.date === dateStr(d)) || null
   }
 
-  function isToday(d: Date) {
-    return d.toDateString() === today.toDateString()
-  }
-
-  function isWeekend(d: Date) {
-    return d.getDay() === 0 || d.getDay() === 6
-  }
+  function isToday(d: Date)   { return d.toDateString() === today.toDateString() }
+  function isWeekend(d: Date) { return d.getDay() === 0 || d.getDay() === 6 }
 
   async function addBlockedDay() {
     if (!blockModal) return
-    await supabase.from('blocked_days').insert({
-      date: blockModal,
-      reason: blockReason || null,
-    })
+    await supabase.from('blocked_days').insert({ date: blockModal, reason: blockReason || null })
     setBlockModal(null)
     setBlockReason('')
     load()
@@ -126,11 +127,15 @@ export default function CalendarPage() {
     load()
   }
 
-  const selectedEntries = selectedDay ? entries.filter(e => e.start_date <= selectedDay && e.end_date >= selectedDay) : []
+  const selectedEntries = selectedDay
+    ? visibleEntries(entries).filter(e => e.start_date <= selectedDay && e.end_date >= selectedDay)
+    : []
   const selectedBlocked = selectedDay ? blockedDays.find(b => b.date === selectedDay) : null
 
+  const isAdmin = profile?.role === 'admin'
+
   if (loading) return (
-    <div className="flex items-center justify-center h-64 text-gray-400">Loading calendar…</div>
+    <div className="flex items-center justify-center h-64 text-gray-400">Loading calendar...</div>
   )
 
   return (
@@ -139,9 +144,26 @@ export default function CalendarPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display font-bold text-oxford text-3xl">Calendar</h1>
-          <p className="text-gray-500 mt-1">Team leave overview</p>
+          <p className="text-gray-500 mt-1">
+            {isAdmin && teamView ? 'Team leave overview' : 'Your leave'}
+          </p>
         </div>
         <div className="flex items-center gap-3">
+          {/* Admin view toggle */}
+          {isAdmin && (
+            <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm">
+              <button onClick={() => setTeamView(false)}
+                      className={`px-4 py-2 font-medium transition-colors
+                        ${!teamView ? 'bg-oxford text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                My Leave
+              </button>
+              <button onClick={() => setTeamView(true)}
+                      className={`px-4 py-2 font-medium transition-colors
+                        ${teamView ? 'bg-oxford text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                Team View
+              </button>
+            </div>
+          )}
           <button onClick={prevMonth} className="btn-ghost px-3 py-2 text-lg">‹</button>
           <span className="font-display font-semibold text-oxford text-lg min-w-[160px] text-center">
             {MONTHS[month]} {year}
@@ -172,7 +194,7 @@ export default function CalendarPage() {
           {/* Day headers */}
           <div className="grid grid-cols-7 mb-1">
             {DAYS.map(d => (
-              <div key={d} className={`text-center text-xs font-semibold py-2 
+              <div key={d} className={`text-center text-xs font-semibold py-2
                 ${d === 'Sat' || d === 'Sun' ? 'text-gray-400' : 'text-gray-600'}`}>
                 {d}
               </div>
@@ -184,12 +206,12 @@ export default function CalendarPage() {
             {cells.map((cell, i) => {
               if (!cell) return <div key={i} className="bg-gray-50 min-h-[90px]" />
 
-              const ds        = dateStr(cell)
+              const ds         = dateStr(cell)
               const dayEntries = entriesForDate(cell)
-              const blocked   = isBlocked(cell)
-              const weekend   = isWeekend(cell)
-              const todayCell = isToday(cell)
-              const selected  = selectedDay === ds
+              const blocked    = isBlocked(cell)
+              const weekend    = isWeekend(cell)
+              const todayCell  = isToday(cell)
+              const selected   = selectedDay === ds
 
               return (
                 <div key={i}
@@ -200,7 +222,6 @@ export default function CalendarPage() {
                        ${selected ? 'ring-2 ring-inset ring-oxford' : ''}
                        hover:bg-blue-50`}>
 
-                  {/* Date number */}
                   <div className="flex items-center justify-between mb-1">
                     <span className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full
                       ${todayCell ? 'bg-oxford text-white' : weekend ? 'text-gray-400' : 'text-gray-700'}`}>
@@ -209,27 +230,22 @@ export default function CalendarPage() {
                     {blocked && (
                       <span className="text-xs text-red-500" title={blocked.reason || 'Blocked'}>🚫</span>
                     )}
-                    {profile?.role === 'admin' && !blocked && !weekend && (
-                      <button onClick={e => { e.stopPropagation(); setBlockModal(ds) }}
-                              className="opacity-0 hover:opacity-100 group-hover:opacity-100
-                                         text-xs text-gray-300 hover:text-red-400 transition-opacity"
-                              title="Block this day">
-                        +
-                      </button>
-                    )}
                   </div>
 
-                  {/* Entries */}
                   <div className="space-y-0.5">
                     {dayEntries.slice(0, 3).map(e => {
                       const colour = LEAVE_COLOURS[e.leave_type] || 'bg-gray-400'
                       const type   = LEAVE_TYPES.find(t => t.value === e.leave_type)
+                      // In team view show name, in personal view show just the leave type
+                      const label  = (isAdmin && teamView)
+                        ? `${type?.icon} ${e.name.split(' ')[0]}`
+                        : `${type?.icon} ${type?.label}`
                       return (
                         <div key={e.id}
                              className={`${colour} text-white text-xs px-1.5 py-0.5 rounded truncate
                                ${e.status === 'pending' ? 'opacity-60' : ''}`}
                              title={`${e.name} — ${type?.label}${e.status === 'pending' ? ' (pending)' : ''}`}>
-                          {type?.icon} {e.name.split(' ')[0]}
+                          {label}
                         </div>
                       )
                     })}
@@ -250,8 +266,10 @@ export default function CalendarPage() {
           {selectedDay && (
             <div className="card">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-display font-semibold text-oxford">
-                  {new Date(selectedDay + 'T12:00:00').toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' })}
+                <h3 className="font-display font-semibold text-oxford text-sm">
+                  {new Date(selectedDay + 'T12:00:00').toLocaleDateString('en-GB', {
+                    weekday:'long', day:'numeric', month:'long'
+                  })}
                 </h3>
                 <button onClick={() => setSelectedDay(null)} className="text-gray-400 hover:text-gray-600">✕</button>
               </div>
@@ -265,7 +283,7 @@ export default function CalendarPage() {
                         <p className="text-xs text-red-600 mt-0.5">{selectedBlocked.reason}</p>
                       )}
                     </div>
-                    {profile?.role === 'admin' && (
+                    {isAdmin && (
                       <button onClick={() => removeBlockedDay(selectedBlocked.id)}
                               className="text-xs text-red-500 hover:text-red-700 font-medium">
                         Remove
@@ -276,7 +294,9 @@ export default function CalendarPage() {
               )}
 
               {selectedEntries.length === 0 && !selectedBlocked ? (
-                <p className="text-sm text-gray-400">No leave on this day.</p>
+                <p className="text-sm text-gray-400">
+                  {isAdmin && teamView ? 'No team leave on this day.' : 'No leave on this day.'}
+                </p>
               ) : (
                 <div className="space-y-2">
                   {selectedEntries.map(e => {
@@ -286,10 +306,14 @@ export default function CalendarPage() {
                       <div key={e.id} className="flex items-start gap-2">
                         <div className={`w-2.5 h-2.5 rounded-full ${colour} mt-1 shrink-0`} />
                         <div>
-                          <p className="text-sm font-medium text-oxford">{e.name}</p>
+                          {(isAdmin && teamView) && (
+                            <p className="text-sm font-medium text-oxford">{e.name}</p>
+                          )}
                           <p className="text-xs text-gray-500">
                             {type?.icon} {type?.label}
-                            {e.status === 'pending' && <span className="text-amber-600"> (pending)</span>}
+                            {e.status === 'pending' && (
+                              <span className="text-amber-600"> (pending)</span>
+                            )}
                           </p>
                         </div>
                       </div>
@@ -298,8 +322,7 @@ export default function CalendarPage() {
                 </div>
               )}
 
-              {/* Admin: block this day */}
-              {profile?.role === 'admin' && !selectedBlocked && (
+              {isAdmin && !selectedBlocked && (
                 <button onClick={() => setBlockModal(selectedDay)}
                         className="mt-3 w-full text-sm text-red-500 hover:text-red-700 font-medium
                                    border border-red-200 hover:border-red-400 rounded-lg py-2 transition-colors">
@@ -309,10 +332,10 @@ export default function CalendarPage() {
             </div>
           )}
 
-          {/* Blocked days this month */}
-          {profile?.role === 'admin' && (
+          {/* Blocked days this month (admin only) */}
+          {isAdmin && (
             <div className="card">
-              <h3 className="font-display font-semibold text-oxford mb-3">Blocked days</h3>
+              <h3 className="font-display font-semibold text-oxford mb-3 text-sm">Blocked days this month</h3>
               {blockedDays.filter(b => {
                 const d = new Date(b.date)
                 return d.getFullYear() === year && d.getMonth() === month
@@ -329,9 +352,11 @@ export default function CalendarPage() {
                       <div key={b.id} className="flex items-center justify-between text-sm">
                         <div>
                           <span className="font-medium text-oxford">
-                            {new Date(b.date + 'T12:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'short' })}
+                            {new Date(b.date + 'T12:00:00').toLocaleDateString('en-GB', {
+                              day:'numeric', month:'short'
+                            })}
                           </span>
-                          {b.reason && <span className="text-gray-500 ml-1.5">— {b.reason}</span>}
+                          {b.reason && <span className="text-gray-500 ml-1.5 text-xs">— {b.reason}</span>}
                         </div>
                         <button onClick={() => removeBlockedDay(b.id)}
                                 className="text-xs text-red-400 hover:text-red-600">✕</button>
@@ -350,15 +375,16 @@ export default function CalendarPage() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8">
             <h2 className="font-display font-bold text-oxford text-xl mb-1">Block day</h2>
             <p className="text-gray-500 text-sm mb-5">
-              {new Date(blockModal + 'T12:00:00').toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}
+              {new Date(blockModal + 'T12:00:00').toLocaleDateString('en-GB', {
+                weekday:'long', day:'numeric', month:'long', year:'numeric'
+              })}
             </p>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Reason <span className="text-gray-400 font-normal">(optional)</span>
               </label>
               <input className="input" placeholder="e.g. Company event, peak period"
-                     value={blockReason} onChange={e => setBlockReason(e.target.value)}
-                     autoFocus />
+                     value={blockReason} onChange={e => setBlockReason(e.target.value)} autoFocus />
             </div>
             <div className="flex gap-3">
               <button onClick={addBlockedDay} className="btn-primary flex-1">Block day</button>
