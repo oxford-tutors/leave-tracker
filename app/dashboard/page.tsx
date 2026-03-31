@@ -68,7 +68,9 @@ export default async function DashboardPage() {
         </div>
         <div className="flex justify-between text-sm text-gray-500">
           <span>{entitlement?.total_days || 28} base · {entitlement?.bank_holidays || 8} bank holidays · {entitlement?.carried_over || 0} carried over</span>
-          <span className="font-semibold text-oxford">{hoursToDisplay(remainingHours)} remaining</span>
+          <span className="font-semibold text-oxford">
+            {hoursToDisplay(remainingHours)} remaining ({remainingHours} hours)
+          </span>
         </div>
       </div>
 

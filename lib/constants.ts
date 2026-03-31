@@ -28,9 +28,12 @@ export const LEAVE_COLOURS: Record<string, string> = {
 export const HOURS_PER_DAY = 8
 
 export function hoursToDisplay(hours: number): string {
+  if (hours === 0) return '0 days'
   if (hours % HOURS_PER_DAY === 0) return `${hours / HOURS_PER_DAY} day${hours / HOURS_PER_DAY !== 1 ? 's' : ''}`
-  if (hours === HOURS_PER_DAY / 2) return '0.5 days'
-  return `${hours} hours`
+  const days = Math.floor(hours / HOURS_PER_DAY)
+  const remainder = Math.round((hours % HOURS_PER_DAY) * 100) / 100
+  if (days === 0) return `${remainder} hour${remainder !== 1 ? 's' : ''}`
+  return `${days} day${days !== 1 ? 's' : ''} ${remainder} hour${remainder !== 1 ? 's' : ''}`
 }
 
 export function statusColour(status: string) {
