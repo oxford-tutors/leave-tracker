@@ -13,8 +13,8 @@ function formatDate(d: string) {
   return new Date(d).toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'long', year:'numeric' })
 }
 
-export async function sendLeaveRequestEmail({ request, employee, adminEmails }: {
-  request: any; employee: any; adminEmails: string[]
+export async function sendLeaveRequestEmail({ request, employee, adminEmails, blockedWarning }: {
+  request: any; employee: any; adminEmails: string[]; blockedWarning?: string | null
 }) {
   if (!adminEmails.length || !process.env.RESEND_API_KEY) return
 
@@ -31,6 +31,10 @@ export async function sendLeaveRequestEmail({ request, employee, adminEmails }: 
         <div style="background:#fff;padding:32px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;">
           <h2 style="color:#202641;margin-top:0;">New Leave Request</h2>
           <p style="color:#4a5568;">${employee?.name} has submitted a leave request:</p>
+          \${blockedWarning ? \`
+          <div style="background:#fff5f5;border:1px solid #fed7d7;border-radius:8px;padding:12px;margin:12px 0;">
+            <p style="color:#c53030;font-size:13px;margin:0;">&#9888;&#65039; \${blockedWarning}</p>
+          </div>\` : ''}
           <table style="width:100%;border-collapse:collapse;margin:20px 0;">
             <tr><td style="padding:8px 0;color:#718096;width:140px;">Type</td><td style="padding:8px 0;font-weight:600;color:#202641;">${leaveLabel(request.leave_type)}</td></tr>
             <tr><td style="padding:8px 0;color:#718096;">From</td><td style="padding:8px 0;color:#202641;">${formatDate(request.start_date)}</td></tr>

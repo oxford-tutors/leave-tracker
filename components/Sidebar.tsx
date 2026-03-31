@@ -9,6 +9,7 @@ const NAV = [
   { href: '/dashboard',            label: 'Dashboard',     icon: '▦',  adminOnly: false },
   { href: '/dashboard/my-leave',   label: 'My Leave',      icon: '📅', adminOnly: false },
   { href: '/dashboard/request',    label: 'Request Leave', icon: '+',  adminOnly: false },
+  { href: '/dashboard/calendar',   label: 'Calendar',      icon: '🗓', adminOnly: false },
   { href: '/dashboard/approvals',  label: 'Approvals',     icon: '✓',  adminOnly: true  },
   { href: '/dashboard/team',       label: 'Team Overview', icon: '👥', adminOnly: true  },
   { href: '/dashboard/employees',  label: 'Employees',     icon: '⚙',  adminOnly: true  },

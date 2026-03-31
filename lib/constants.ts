@@ -1,14 +1,29 @@
 export const LEAVE_TYPES = [
-  { value: 'annual',          label: 'Annual Leave',         deductible: true  },
-  { value: 'sick',            label: 'Sick Leave',           deductible: false },
-  { value: 'maternity',       label: 'Maternity Leave',      deductible: false },
-  { value: 'paternity',       label: 'Paternity Leave',      deductible: false },
-  { value: 'shared_parental', label: 'Shared Parental',      deductible: false },
-  { value: 'compassionate',   label: 'Compassionate Leave',  deductible: false },
-  { value: 'unpaid',          label: 'Unpaid Leave',         deductible: false },
-  { value: 'toil',            label: 'TOIL',                 deductible: false },
-  { value: 'study',           label: 'Study / Training',     deductible: false },
+  { value: 'annual',          label: 'Annual Leave',         deductible: true,  icon: '🌴' },
+  { value: 'wfh',             label: 'Work from Home',       deductible: false, icon: '🏠' },
+  { value: 'sick',            label: 'Sick Leave',           deductible: false, icon: '🤒' },
+  { value: 'maternity',       label: 'Maternity Leave',      deductible: false, icon: '👶' },
+  { value: 'paternity',       label: 'Paternity Leave',      deductible: false, icon: '👶' },
+  { value: 'shared_parental', label: 'Shared Parental',      deductible: false, icon: '👨‍👩‍👧' },
+  { value: 'compassionate',   label: 'Compassionate Leave',  deductible: false, icon: '🕊️' },
+  { value: 'unpaid',          label: 'Unpaid Leave',         deductible: false, icon: '📋' },
+  { value: 'toil',            label: 'TOIL',                 deductible: false, icon: '⏱️' },
+  { value: 'study',           label: 'Study / Training',     deductible: false, icon: '📚' },
 ]
+
+// Colours for calendar display per leave type
+export const LEAVE_COLOURS: Record<string, string> = {
+  annual:          'bg-blue-500',
+  wfh:             'bg-teal-500',
+  sick:            'bg-red-400',
+  maternity:       'bg-pink-400',
+  paternity:       'bg-purple-400',
+  shared_parental: 'bg-purple-500',
+  compassionate:   'bg-gray-400',
+  unpaid:          'bg-orange-400',
+  toil:            'bg-yellow-500',
+  study:           'bg-green-500',
+}
 
 export const HOURS_PER_DAY = 8
 
